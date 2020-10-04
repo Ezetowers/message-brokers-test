@@ -1,34 +1,91 @@
 version: '3'
 services:
-  server:
-    container_name: server
-    image: server:latest
-    entrypoint: python3 /main.py
-    environment:
-      - PYTHONUNBUFFERED=1
-      - SERVER_IP=server
-      - SERVER_PORT=12345
-      - SERVER_LISTEN_BACKLOG=5
-    networks:
-      - testing_net
-
-  client1:
-    container_name: client1
-    image: client:latest
-    entrypoint: /client
-    environment:
-      - CLI_ID=1
-      - CLI_SERVER_ADDRESS=server:12345
-      - CLI_LOOP_LAPSE=1m2s
-      - CLI_LOOP_PERIOD=10s
-    networks:
-      - testing_net
+  nsqd-1:
+    container_name: nsqd-1
+    image: nsqio/nsq:v1.2.0
+    entrypoint: /nsqd
+    command:
+      - --broadcast-address=nsqlookupd-1-1
+      - --lookupd-tcp-address=nsqlookupd-1:4160
     depends_on:
-      - server
+      - nsqlookupd-1
+    networks:
+      - nsq-net
+
+  nsqd-2:
+    container_name: nsqd-2
+    image: nsqio/nsq:v1.2.0
+    entrypoint: /nsqd
+    command:
+      - --broadcast-address=nsqlookupd-1
+      - --lookupd-tcp-address=nsqlookupd-1:4160
+    depends_on:
+      - nsqlookupd-1
+    networks:
+      - nsq-net
+
+  nsqd-3:
+    container_name: nsqd-3
+    image: nsqio/nsq:v1.2.0
+    entrypoint: /nsqd
+    command:
+      - --broadcast-address=nsqlookupd-1
+      - --lookupd-tcp-address=nsqlookupd-1:4160
+    depends_on:
+      - nsqlookupd-1
+    networks:
+      - nsq-net
+
+  nsqlookupd-1:
+    container_name: nsqlookupd-1
+    image: nsqio/nsq:v1.2.0
+    entrypoint: /nsqlookupd
+    networks:
+      - nsq-net
+
+  nsqadmin:
+    image: nsqio/nsq:v1.2.0
+    entrypoint: /nsqadmin
+    command:
+      - --lookupd-http-address=nsqlookupd-1:4161
+    depends_on:
+      - nsqlookupd-1 
+    ports:
+      - 4171:4171
+    networks:
+      - nsq-net
+
+  # nsqlookupd-2:
+  #   container_name: nsqlookupd-1
+  #   image: nsqio/nsq:1.2.0
+  #   entrypoint: /nslookupd
+  #   networks:
+  #     - nsq-net
+
+  # nsqlookupd-3:
+  #   container_name: nsqlookupd-1
+  #   image: nsqio/nsq:1.2.0
+  #   entrypoint: /nslookupd
+  #   networks:
+  #     - nsq-net
+
+  # client1:
+  #   container_name: client1
+  #   image: client:latest
+  #   entrypoint: /client
+  #   environment:
+  #     - CLI_ID=1
+  #     - CLI_SERVER_ADDRESS=server:12345
+  #     - CLI_LOOP_LAPSE=1m2s
+  #     - CLI_LOOP_PERIOD=10s
+  #   networks:
+  #     - nsq-net
+  #   depends_on:
+  #     - server
 
 networks:
-  testing_net:
+  nsq-net:
     ipam:
       driver: default
       config:
-        - subnet: 172.25.125.0/24
+        - subnet: 172.25.126.0/24
