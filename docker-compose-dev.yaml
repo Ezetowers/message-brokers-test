@@ -108,7 +108,7 @@ services:
       - TOPIC=test_topic
       - CHANNEL=test_channel
       - LOOP_INTERVAL=1s
-      - NSQD_SERVER=nsqd-1:4150
+      - NSQD_SERVERS=nsqd-1:4150 nsqd-2:4150 nsqd-3:4150
     networks:
       - nsq-net
     depends_on:

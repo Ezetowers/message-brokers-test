@@ -19,7 +19,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("id")
 	v.BindEnv("topic")
 	v.BindEnv("channel")
-	v.BindEnv("nsqd", "server")
+	v.BindEnv("nsqd", "servers")
 	v.BindEnv("loop", "interval")
 
 	return v, nil
@@ -32,10 +32,19 @@ func main() {
 	}
 
 	// Instantiate a consumer that will subscribe to the provided channel.
-	producer, err := nsq.NewProducer(
-		v.GetString("nsqd_server"),
-		nsq.NewConfig(),
-	)
+
+	nsqConfig := nsq.NewConfig()
+	listOfProducers := make([]*nsq.Producer, 0)
+	for _, producerAddr := range v.GetStringSlice("nsqd_servers") {
+		producer, err := nsq.NewProducer(
+			producerAddr,
+			nsqConfig,
+		)
+		if err != nil {
+			log.Fatal("MAMAAAA!!")
+		}
+		listOfProducers = append(listOfProducers, producer)
+	}
 
 	if err != nil {
 		log.Panic("Could not create producer")
@@ -46,13 +55,21 @@ func main() {
 	// channelName := v.GetString("channel")
 
 	for {
-		if err := producer.Publish(topicName, messageBody); err != nil {
-			log.Fatal(err)
+		messageSent := false
+		for _, producer := range listOfProducers {
+			log.Printf("[PRODUCER %s] Sending message to nsqd server %s", v.GetString("id"), producer)
+			if err := producer.Publish(topicName, messageBody); err != nil {
+				continue
+			}
+			messageSent = true
+			break
 		}
+
+		if !messageSent {
+			log.Fatal("Esto no es fault tolerant vieja!!")
+		}
+
 		log.Printf("%s", messageBody)
 		time.Sleep(v.GetDuration("loop_interval"))
 	}
-
-	// Gracefully stop the producer when appropriate (e.g. before shutting down the service)
-	producer.Stop()
 }
