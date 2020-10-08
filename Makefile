@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 PWD := $(shell pwd)
 
-GIT_REMOTE = github.com/7574-sistemas-distribuidos/docker-compose-init
+GIT_REMOTE = github.com/Ezetowers/nsq-test
 
 default: build
 
@@ -12,12 +12,13 @@ deps:
 	go mod vendor
 
 build: deps
-	GOOS=linux go build -o bin/client github.com/7574-sistemas-distribuidos/docker-compose-init/client
+	GOOS=linux go build -o bin/consumer ${GIT_REMOTE}/consumer
+	GOOS=linux go build -o bin/producer ${GIT_REMOTE}/producer
 .PHONY: build
 
 docker-image:
-	docker build -f ./server/Dockerfile -t "server:latest" .
-	docker build -f ./client/Dockerfile -t "client:latest" .
+	docker build -f ./consumer/Dockerfile -t "consumer:latest" .
+	docker build -f ./producer/Dockerfile -t "producer:latest" .
 .PHONY: docker-image
 
 docker-compose-up: docker-image

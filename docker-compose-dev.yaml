@@ -82,6 +82,40 @@ services:
     networks:
       - nsq-net
 
+  consumer1:
+    container_name: consumer1
+    image: consumer:latest
+    entrypoint: /consumer
+    environment:
+      - ID=1
+      - LOOKUPD_SERVERS=nsqlookupd-1:4161 nsqlookupd-2:4161 nsqlookupd-3:4161
+      - TOPIC=test_topic
+      - CHANNEL=test_channel
+    networks:
+      - nsq-net
+    depends_on:
+      - nsqd-1
+      - nsqd-2
+      - nsqd-3
+      - producer1
+
+  producer1:
+    container_name: producer1
+    image: producer:latest
+    entrypoint: /producer
+    environment:
+      - ID=1
+      - TOPIC=test_topic
+      - CHANNEL=test_channel
+      - LOOP_INTERVAL=1s
+      - NSQD_SERVER=nsqd-1:4150
+    networks:
+      - nsq-net
+    depends_on:
+      - nsqd-1
+      - nsqd-2
+      - nsqd-3
+
 networks:
   nsq-net:
     ipam:
